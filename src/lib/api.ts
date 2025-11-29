@@ -1,54 +1,57 @@
 /**
- * Django REST API Client Configuration
- * This file provides authentication and data access functions for the Django + MongoDB backend
+ * REST API Client Configuration
+ * Works with your Node + Express + SQL backend
  */
 
-// Get environment variables for Django backend
 const apiBaseUrl =
-  import.meta.env?.VITE_API_BASE_URL ||
-  "http://localhost:8000/api";
+  import.meta.env?.VITE_API_BASE_URL || "http://localhost:5000/api";
 const apiKey = import.meta.env?.VITE_API_KEY || "";
 
-// Check if we're in production mode with Django API configured
 export const isApiConfigured = !!(
-  apiBaseUrl && apiBaseUrl !== "http://localhost:8000/api"
+  apiBaseUrl && apiBaseUrl !== "http://localhost:5000/api"
 );
 
-// Also export with the old name for backward compatibility
+// Backward compatibility alias
 export const isSupabaseConfigured = isApiConfigured;
 
-// Helper function for API calls
-const apiCall = async (
-  endpoint: string,
-  options: RequestInit = {},
-) => {
-  const headers = {
+// Generic API caller
+const apiCall = async (endpoint: string, options: RequestInit = {}) => {
+  const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...(apiKey && { "X-API-Key": apiKey }),
-    ...options.headers,
+    ...(options.headers || {}),
   };
 
-  const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+  const base = apiBaseUrl.replace(/\/+$/, "");
+  const path = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+
+  const response = await fetch(`${base}${path}`, {
     ...options,
     headers,
-    credentials: "include", // Include cookies for session management
+    credentials: "include",
   });
 
-  const data = await response.json();
+  const text = await response.text();
+  let data: any = null;
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = { message: text };
+    }
+  }
 
   if (!response.ok) {
-    throw new Error(
-      data.message || data.error || "API request failed",
-    );
+    throw new Error(data?.message || data?.error || "API request failed");
   }
 
   return data;
 };
 
-// Type definitions for database models (matching MongoDB schemas)
+// Types (adapt as needed to your Prisma models)
 export interface UserProfile {
   _id: string;
-  id: string; // Alias for _id for backward compatibility
+  id: string;
   email: string;
   name: string;
   role: "student" | "teacher";
@@ -112,22 +115,15 @@ export interface QuizResult {
 export interface Achievement {
   _id: string;
   user_id: string;
-  achievement_type:
-    | "badge"
-    | "trophy"
-    | "certificate"
-    | "streak";
+  achievement_type: "badge" | "trophy" | "certificate" | "streak";
   achievement_name: string;
   achievement_icon: string | null;
   subject: string | null;
   earned_at: string;
 }
 
-// Authentication helper functions
+// AUTH HELPERS (routes mounted at /auth)
 export const authHelpers = {
-  /**
-   * Sign up a new user
-   */
   signUp: async (
     email: string,
     password: string,
@@ -135,14 +131,12 @@ export const authHelpers = {
       name: string;
       role: "student" | "teacher";
       grade?: string;
-    },
+    }
   ) => {
-    // DEMO MODE: If API not configured, use mock authentication
     if (!isApiConfigured) {
       console.info(
-        "ℹ️ Running in DEMO MODE - All data is temporary and stored locally.",
+        "ℹ️ Running in DEMO MODE - All data is temporary and stored locally."
       );
-      // Mock successful signup
       const mockUser = {
         id: Math.random().toString(36).substr(2, 9),
         email,
@@ -152,7 +146,7 @@ export const authHelpers = {
     }
 
     try {
-      const response = await apiCall("/auth/signup/", {
+      const response = await apiCall("/auth/signup", {
         method: "POST",
         body: JSON.stringify({
           email,
@@ -169,38 +163,29 @@ export const authHelpers = {
     }
   },
 
-  /**
-   * Sign in existing user
-   */
   signIn: async (
     email: string,
     password: string,
     selectedRole?: "student" | "teacher",
-    selectedGrade?: string,
+    selectedGrade?: string
   ) => {
-    // DEMO MODE: If API not configured, use mock authentication
     if (!isApiConfigured) {
-      // Only log on first use to avoid console spam
       if (!sessionStorage.getItem("demoModeLogged")) {
         console.info(
-          "ℹ️ Running in DEMO MODE - All data is temporary and stored locally.",
+          "ℹ️ Running in DEMO MODE - All data is temporary and stored locally."
         );
         sessionStorage.setItem("demoModeLogged", "true");
       }
-      // Mock successful login (accept any email with @ and password length >= 4)
+
       if (email.includes("@") && password.length >= 4) {
-        const mockProfile = {
+        const mockProfile: UserProfile = {
           id: Math.random().toString(36).substr(2, 9),
           _id: Math.random().toString(36).substr(2, 9),
           email,
           name: email.split("@")[0],
-          role: (selectedRole || "student") as
-            | "student"
-            | "teacher", // Use selected role instead of hardcoded
+          role: (selectedRole || "student") as "student" | "teacher",
           grade:
-            selectedRole === "student"
-              ? selectedGrade || "8"
-              : null,
+            selectedRole === "student" ? selectedGrade || "8" : null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -219,18 +204,19 @@ export const authHelpers = {
     }
 
     try {
-      const response = await apiCall("/auth/login/", {
+      const response = await apiCall("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({
+          email,
+          password,
+          selectedRole,
+          selectedGrade,
+        }),
       });
 
-      // Django response should include user and profile
       return {
-        user: {
-          id: response.user._id,
-          email: response.user.email,
-        },
-        profile: { ...response.user, id: response.user._id },
+        user: response.user,
+        profile: response.profile,
         error: null,
       };
     } catch (error: any) {
@@ -242,47 +228,43 @@ export const authHelpers = {
     }
   },
 
-  /**
-   * Sign out current user
-   */
   signOut: async () => {
     if (!isApiConfigured) {
       return { error: null };
     }
     try {
-      await apiCall("/auth/logout/", { method: "POST" });
+      await apiCall("/auth/logout", { method: "POST" });
       return { error: null };
     } catch (error: any) {
       return { error: error.message };
     }
   },
 
-  /**
-   * Get current session
-   */
   getSession: async () => {
     if (!isApiConfigured) {
       return { session: null, error: null };
     }
     try {
-      const response = await apiCall("/auth/session/");
+      const response = await apiCall("/auth/session", {
+        method: "GET",
+      });
       return { session: response.session, error: null };
     } catch (error: any) {
       return { session: null, error: error.message };
     }
   },
 
-  /**
-   * Get current user profile
-   */
   getUserProfile: async (userId: string) => {
     if (!isApiConfigured) {
       return { profile: null, error: null };
     }
     try {
-      const response = await apiCall(`/users/${userId}/`);
+      const response = await apiCall(`/auth/profile/${userId}`, {
+        method: "GET",
+      });
+      const profile = response.profile;
       return {
-        profile: { ...response, id: response._id },
+        profile: { ...profile, id: profile._id },
         error: null,
       };
     } catch (error: any) {
@@ -291,43 +273,37 @@ export const authHelpers = {
   },
 };
 
-// Student data helper functions
+// STUDENT HELPERS (routes mounted at /students)
 export const studentHelpers = {
-  /**
-   * Get student progress for all subjects
-   */
   getProgress: async (userId: string) => {
     if (!isApiConfigured) {
       return { progress: [], error: null };
     }
     try {
-      const response = await apiCall(
-        `/students/${userId}/progress/`,
-      );
+      const response = await apiCall(`/students/${userId}/progress`, {
+        method: "GET",
+      });
       return { progress: response.progress, error: null };
     } catch (error: any) {
       return { progress: [], error: error.message };
     }
   },
 
-  /**
-   * Update student progress
-   */
   updateProgress: async (
     userId: string,
     subject: string,
-    updates: any,
+    updates: any
   ) => {
     if (!isApiConfigured) {
       return { progress: null, error: null };
     }
     try {
       const response = await apiCall(
-        `/students/${userId}/progress/${subject}/`,
+        `/students/${userId}/progress/${subject}`,
         {
           method: "PATCH",
           body: JSON.stringify(updates),
-        },
+        }
       );
       return { progress: response, error: null };
     } catch (error: any) {
@@ -335,9 +311,6 @@ export const studentHelpers = {
     }
   },
 
-  /**
-   * Get available activities for student's grade
-   */
   getActivities: async (grade: string, subject?: string) => {
     if (!isApiConfigured) {
       return { activities: [], error: null };
@@ -347,7 +320,8 @@ export const studentHelpers = {
       if (subject) params.append("subject", subject);
 
       const response = await apiCall(
-        `/activities/?${params.toString()}`,
+        `/students/activities?${params.toString()}`,
+        { method: "GET" }
       );
       return { activities: response.activities, error: null };
     } catch (error: any) {
@@ -355,9 +329,6 @@ export const studentHelpers = {
     }
   },
 
-  /**
-   * Submit quiz result
-   */
   submitQuizResult: async (result: {
     user_id: string;
     activity_id: string;
@@ -371,7 +342,7 @@ export const studentHelpers = {
       return { result: null, error: null };
     }
     try {
-      const response = await apiCall("/quiz-results/", {
+      const response = await apiCall("/students/quiz-results", {
         method: "POST",
         body: JSON.stringify(result),
       });
@@ -381,16 +352,14 @@ export const studentHelpers = {
     }
   },
 
-  /**
-   * Get student achievements
-   */
   getAchievements: async (userId: string) => {
     if (!isApiConfigured) {
       return { achievements: [], error: null };
     }
     try {
       const response = await apiCall(
-        `/students/${userId}/achievements/`,
+        `/students/${userId}/achievements`,
+        { method: "GET" }
       );
       return {
         achievements: response.achievements,
@@ -402,18 +371,16 @@ export const studentHelpers = {
   },
 };
 
-// Teacher data helper functions
+// TEACHER HELPERS (routes mounted at /teachers)
 export const teacherHelpers = {
-  /**
-   * Get all classes for a teacher
-   */
   getClasses: async (teacherId: string) => {
     if (!isApiConfigured) {
       return { classes: [], error: null };
     }
     try {
       const response = await apiCall(
-        `/teachers/${teacherId}/classes/`,
+        `/teachers/${teacherId}/classes`,
+        { method: "GET" }
       );
       return { classes: response.classes, error: null };
     } catch (error: any) {
@@ -421,9 +388,6 @@ export const teacherHelpers = {
     }
   },
 
-  /**
-   * Create a new class
-   */
   createClass: async (classData: {
     teacher_id: string;
     class_name: string;
@@ -435,7 +399,7 @@ export const teacherHelpers = {
       return { class: null, error: null };
     }
     try {
-      const response = await apiCall("/classes/", {
+      const response = await apiCall("/teachers/classes", {
         method: "POST",
         body: JSON.stringify(classData),
       });
@@ -445,16 +409,14 @@ export const teacherHelpers = {
     }
   },
 
-  /**
-   * Get students in a class
-   */
   getClassStudents: async (classId: string) => {
     if (!isApiConfigured) {
       return { students: [], error: null };
     }
     try {
       const response = await apiCall(
-        `/classes/${classId}/students/`,
+        `/teachers/classes/${classId}/students`,
+        { method: "GET" }
       );
       return { students: response.students, error: null };
     } catch (error: any) {
@@ -462,16 +424,14 @@ export const teacherHelpers = {
     }
   },
 
-  /**
-   * Get analytics for all students in teacher's classes
-   */
   getClassAnalytics: async (teacherId: string) => {
     if (!isApiConfigured) {
       return { analytics: null, error: null };
     }
     try {
       const response = await apiCall(
-        `/teachers/${teacherId}/analytics/`,
+        `/teachers/${teacherId}/analytics`,
+        { method: "GET" }
       );
       return { analytics: response.analytics, error: null };
     } catch (error: any) {
@@ -479,9 +439,6 @@ export const teacherHelpers = {
     }
   },
 
-  /**
-   * Create assignment or notice for students
-   */
   createAssignment: async (assignmentData: {
     teacher_id: string;
     title: string;
@@ -492,30 +449,29 @@ export const teacherHelpers = {
     attachment?: {
       name: string;
       type: string;
-      data: string; // Base64 encoded file data
+      data: string;
     };
   }) => {
     if (!isApiConfigured) {
-      // DEMO MODE: Store in localStorage
       const stored = localStorage.getItem("teacherAssignments");
       const assignments = stored ? JSON.parse(stored) : [];
       const newAssignment = {
         id: Math.random().toString(36).substr(2, 9),
         _id: Math.random().toString(36).substr(2, 9),
         ...assignmentData,
-        teacherName: "Demo Teacher", // In real app, get from session
+        teacherName: "Demo Teacher",
         createdAt: new Date().toISOString(),
       };
       assignments.push(newAssignment);
       localStorage.setItem(
         "teacherAssignments",
-        JSON.stringify(assignments),
+        JSON.stringify(assignments)
       );
       return { assignment: newAssignment, error: null };
     }
 
     try {
-      const response = await apiCall("/assignments/", {
+      const response = await apiCall("/teachers/assignments", {
         method: "POST",
         body: JSON.stringify(assignmentData),
       });
@@ -525,12 +481,8 @@ export const teacherHelpers = {
     }
   },
 
-  /**
-   * Get all assignments created by teacher
-   */
   getTeacherAssignments: async (teacherId: string) => {
     if (!isApiConfigured) {
-      // DEMO MODE: Get from localStorage
       const stored = localStorage.getItem("teacherAssignments");
       const assignments = stored ? JSON.parse(stored) : [];
       return { assignments, error: null };
@@ -538,7 +490,8 @@ export const teacherHelpers = {
 
     try {
       const response = await apiCall(
-        `/teachers/${teacherId}/assignments/`,
+        `/teachers/${teacherId}/assignments`,
+        { method: "GET" }
       );
       return { assignments: response.assignments, error: null };
     } catch (error: any) {
@@ -546,30 +499,25 @@ export const teacherHelpers = {
     }
   },
 
-  /**
-   * Delete an assignment
-   */
   deleteAssignment: async (
     assignmentId: string,
-    teacherId: string,
+    teacherId: string
   ) => {
     if (!isApiConfigured) {
-      // DEMO MODE: Delete from localStorage
       const stored = localStorage.getItem("teacherAssignments");
       const assignments = stored ? JSON.parse(stored) : [];
       const filtered = assignments.filter(
-        (a: any) =>
-          a.id !== assignmentId && a._id !== assignmentId,
+        (a: any) => a.id !== assignmentId && a._id !== assignmentId
       );
       localStorage.setItem(
         "teacherAssignments",
-        JSON.stringify(filtered),
+        JSON.stringify(filtered)
       );
       return { error: null };
     }
 
     try {
-      await apiCall(`/assignments/${assignmentId}/`, {
+      await apiCall(`/teachers/assignments/${assignmentId}`, {
         method: "DELETE",
       });
       return { error: null };
@@ -579,26 +527,23 @@ export const teacherHelpers = {
   },
 };
 
-// Assignment/Notice helper functions
+// ASSIGNMENT HELPERS (routes mounted at /assignments)
 export const assignmentHelpers = {
-  /**
-   * Get assignments for a specific grade (student view)
-   */
   getAssignmentsForGrade: async (grade: string) => {
     if (!isApiConfigured) {
-      // DEMO MODE: Get from localStorage and filter by grade
       const stored = localStorage.getItem("teacherAssignments");
       const allAssignments = stored ? JSON.parse(stored) : [];
       const filtered = allAssignments.filter(
         (a: any) =>
-          a.target_grade === grade || a.targetGrade === grade,
+          a.target_grade === grade || a.targetGrade === grade
       );
       return { assignments: filtered, error: null };
     }
 
     try {
       const response = await apiCall(
-        `/assignments/?grade=${grade}`,
+        `/assignments/grade/${encodeURIComponent(grade)}`,
+        { method: "GET" }
       );
       return { assignments: response.assignments, error: null };
     } catch (error: any) {
@@ -606,21 +551,85 @@ export const assignmentHelpers = {
     }
   },
 
-  /**
-   * Mark assignment as viewed by student
-   */
   markAsViewed: async (
     assignmentId: string,
-    studentId: string,
+    studentId: string
   ) => {
     if (!isApiConfigured) {
       return { error: null };
     }
 
     try {
-      await apiCall(`/assignments/${assignmentId}/view/`, {
+      await apiCall(`/assignments/${assignmentId}/view`, {
         method: "POST",
         body: JSON.stringify({ student_id: studentId }),
+      });
+      return { error: null };
+    } catch (error: any) {
+      return { error: error.message };
+    }
+  },
+};
+
+// ACTIVITIES HELPERS (routes mounted at /activities)
+export const activitiesHelpers = {
+  getActivities: async (params: { grade?: string; subject?: string } = {}) => {
+    if (!isApiConfigured) {
+      return { activities: [], error: null };
+    }
+    try {
+      const search = new URLSearchParams();
+      if (params.grade) search.set("grade", params.grade);
+      if (params.subject) search.set("subject", params.subject);
+
+      const query = search.toString();
+      const response = await apiCall(
+        `/activities${query ? `?${query}` : ""}`,
+        { method: "GET" }
+      );
+      return { activities: response.activities, error: null };
+    } catch (error: any) {
+      return { activities: [], error: error.message };
+    }
+  },
+
+  createActivity: async (activity: any) => {
+    if (!isApiConfigured) {
+      return { activity: null, error: null };
+    }
+    try {
+      const response = await apiCall("/activities", {
+        method: "POST",
+        body: JSON.stringify(activity),
+      });
+      return { activity: response, error: null };
+    } catch (error: any) {
+      return { activity: null, error: error.message };
+    }
+  },
+
+  updateActivity: async (id: string, updates: any) => {
+    if (!isApiConfigured) {
+      return { activity: null, error: null };
+    }
+    try {
+      const response = await apiCall(`/activities/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(updates),
+      });
+      return { activity: response, error: null };
+    } catch (error: any) {
+      return { activity: null, error: error.message };
+    }
+  },
+
+  deleteActivity: async (id: string) => {
+    if (!isApiConfigured) {
+      return { error: null };
+    }
+    try {
+      await apiCall(`/activities/${id}`, {
+        method: "DELETE",
       });
       return { error: null };
     } catch (error: any) {
@@ -634,4 +643,5 @@ export default {
   studentHelpers,
   teacherHelpers,
   assignmentHelpers,
+  activitiesHelpers,
 };
