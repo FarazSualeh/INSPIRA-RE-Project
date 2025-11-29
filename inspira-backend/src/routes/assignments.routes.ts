@@ -1,27 +1,23 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
-  createAssignment,
   getAssignmentsForGrade,
-  getTeacherAssignments,
+  createAssignment,
   deleteAssignment,
-  markAsViewed,
-} from '../controllers/assignments.controller';
+  markAssignmentAsViewed,
+} from "../controllers/assignments.controller";
 
 const router = Router();
 
-// Route to create a new assignment
-router.post('/', createAssignment);
+// Get assignments for a grade
+router.get("/grade/:grade", getAssignmentsForGrade);
 
-// Route to get assignments for a specific grade
-router.get('/grade/:grade', getAssignmentsForGrade);
+// Teacher creates an assignment/notice
+router.post("/", createAssignment);
 
-// Route to get all assignments created by a teacher
-router.get('/teacher/:teacherId', getTeacherAssignments);
+// Delete an assignment
+router.delete("/:assignmentId", deleteAssignment);
 
-// Route to delete an assignment
-router.delete('/:assignmentId/teacher/:teacherId', deleteAssignment);
-
-// Route to mark an assignment as viewed by a student
-router.post('/:assignmentId/view', markAsViewed);
+// Mark assignment as viewed by a student
+router.post("/:assignmentId/view", markAssignmentAsViewed);
 
 export default router;

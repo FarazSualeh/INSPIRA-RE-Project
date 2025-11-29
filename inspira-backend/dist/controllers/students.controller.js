@@ -12,7 +12,8 @@ exports.studentsController = {
             res.status(200).json({ progress });
         }
         catch (error) {
-            res.status(500).json({ error: error.message });
+            const message = error instanceof Error ? error.message : "Internal server error";
+            res.status(500).json({ error: message });
         }
     },
     // Update student progress
@@ -25,7 +26,8 @@ exports.studentsController = {
             res.status(200).json({ progress });
         }
         catch (error) {
-            res.status(500).json({ error: error.message });
+            const message = error instanceof Error ? error.message : "Internal server error";
+            res.status(500).json({ error: message });
         }
     },
     // Get available activities for student's grade
@@ -36,7 +38,8 @@ exports.studentsController = {
             res.status(200).json({ activities });
         }
         catch (error) {
-            res.status(500).json({ error: error.message });
+            const message = error instanceof Error ? error.message : "Internal server error";
+            res.status(500).json({ error: message });
         }
     },
     // Submit quiz result
@@ -47,7 +50,8 @@ exports.studentsController = {
             res.status(201).json({ result: submittedResult });
         }
         catch (error) {
-            res.status(500).json({ error: error.message });
+            const message = error instanceof Error ? error.message : "Internal server error";
+            res.status(500).json({ error: message });
         }
     },
     // Get student achievements
@@ -58,7 +62,8 @@ exports.studentsController = {
             res.status(200).json({ achievements });
         }
         catch (error) {
-            res.status(500).json({ error: error.message });
+            const message = error instanceof Error ? error.message : "Internal server error";
+            res.status(500).json({ error: message });
         }
     },
 };

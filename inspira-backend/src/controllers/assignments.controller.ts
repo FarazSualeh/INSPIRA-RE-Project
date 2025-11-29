@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
-import { AssignmentService } from '../services/assignment.service';
+import { Request, Response } from "express";
+import { assignmentService } from "../services/assignment.service";
 
-const assignmentService = new AssignmentService();
+const getErrorMessage = (error: unknown): string =>
+  error instanceof Error ? error.message : "Internal server error";
 
 export const getAssignmentsForGrade = async (req: Request, res: Response) => {
   const { grade } = req.params;
@@ -9,8 +10,8 @@ export const getAssignmentsForGrade = async (req: Request, res: Response) => {
   try {
     const assignments = await assignmentService.getAssignmentsForGrade(grade);
     res.status(200).json({ assignments });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 };
 
@@ -20,8 +21,8 @@ export const createAssignment = async (req: Request, res: Response) => {
   try {
     const assignment = await assignmentService.createAssignment(assignmentData);
     res.status(201).json({ assignment });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 };
 
@@ -31,19 +32,22 @@ export const deleteAssignment = async (req: Request, res: Response) => {
   try {
     await assignmentService.deleteAssignment(assignmentId);
     res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 };
 
-export const markAssignmentAsViewed = async (req: Request, res: Response) => {
+export const markAssignmentAsViewed = async (
+  req: Request,
+  res: Response
+) => {
   const { assignmentId } = req.params;
   const { studentId } = req.body;
 
   try {
     await assignmentService.markAsViewed(assignmentId, studentId);
     res.status(204).send();
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+  } catch (error: unknown) {
+    res.status(500).json({ error: getErrorMessage(error) });
   }
 };

@@ -21,6 +21,7 @@ model User {
   classes        Class[]          @relation("TeacherClasses")
   quizResults    QuizResult[]
   achievements   Achievement[]
+  assignments    Assignment[]     @relation("TeacherAssignments")
 }
 
 model StudentProgress {
@@ -97,4 +98,18 @@ model Achievement {
   earnedAt        DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model Assignment {
+  id          Int      @id @default(autoincrement())
+  teacherId   Int
+  title       String
+  type        String   // "assignment" or "notice"
+  subject     String
+  targetGrade String
+  content     String
+  attachment  String?
+  createdAt   DateTime @default(now())
+
+  teacher User @relation("TeacherAssignments", fields: [teacherId], references: [id])
 }

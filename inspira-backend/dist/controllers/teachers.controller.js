@@ -10,7 +10,8 @@ const getClasses = async (req, res) => {
         res.status(200).json({ classes });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : "Internal server error";
+        res.status(500).json({ error: message });
     }
 };
 exports.getClasses = getClasses;
@@ -22,7 +23,8 @@ const createClass = async (req, res) => {
         res.status(201).json({ class: newClass });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : "Internal server error";
+        res.status(500).json({ error: message });
     }
 };
 exports.createClass = createClass;
@@ -34,7 +36,8 @@ const getClassStudents = async (req, res) => {
         res.status(200).json({ students });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : "Internal server error";
+        res.status(500).json({ error: message });
     }
 };
 exports.getClassStudents = getClassStudents;
@@ -46,7 +49,8 @@ const getClassAnalytics = async (req, res) => {
         res.status(200).json({ analytics });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : "Internal server error";
+        res.status(500).json({ error: message });
     }
 };
 exports.getClassAnalytics = getClassAnalytics;
@@ -58,7 +62,8 @@ const createAssignment = async (req, res) => {
         res.status(201).json({ assignment });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : "Internal server error";
+        res.status(500).json({ error: message });
     }
 };
 exports.createAssignment = createAssignment;
@@ -70,20 +75,21 @@ const getTeacherAssignments = async (req, res) => {
         res.status(200).json({ assignments });
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : "Internal server error";
+        res.status(500).json({ error: message });
     }
 };
 exports.getTeacherAssignments = getTeacherAssignments;
 // Delete an assignment
 const deleteAssignment = async (req, res) => {
     const assignmentId = req.params.assignmentId;
-    const teacherId = req.params.teacherId;
     try {
-        await teacher_service_1.teacherService.deleteAssignment(assignmentId, teacherId);
+        await teacher_service_1.teacherService.deleteAssignment(assignmentId);
         res.status(204).send();
     }
     catch (error) {
-        res.status(500).json({ error: error.message });
+        const message = error instanceof Error ? error.message : "Internal server error";
+        res.status(500).json({ error: message });
     }
 };
 exports.deleteAssignment = deleteAssignment;

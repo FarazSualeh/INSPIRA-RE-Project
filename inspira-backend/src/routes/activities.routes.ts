@@ -1,18 +1,26 @@
-import { Router } from 'express';
-import { activityController } from '../controllers/activities.controller';
+import { Router } from "express";
+import { activitiesController } from "../controllers/activities.controller";
 
 const router = Router();
 
-// Get available activities for a specific grade and subject
-router.get('/', activityController.getActivities);
+// Get activities (optionally filtered by grade/subject)
+router.get("/", (req, res) =>
+  activitiesController.getActivities(req, res)
+);
 
 // Create a new activity
-router.post('/', activityController.createActivity);
+router.post("/", (req, res) =>
+  activitiesController.createActivity(req, res)
+);
 
 // Update an existing activity
-router.patch('/:id', activityController.updateActivity);
+router.patch("/:id", (req, res) =>
+  activitiesController.updateActivity(req, res)
+);
 
 // Delete an activity
-router.delete('/:id', activityController.deleteActivity);
+router.delete("/:id", (req, res) =>
+  activitiesController.deleteActivity(req, res)
+);
 
 export default router;

@@ -72,7 +72,7 @@ exports.authService = {
     // Get user profile: return { profile, error }
     getUserProfile: async (userId) => {
         try {
-            const user = await prisma.user.findUnique({ where: { id: userId } });
+            const user = await prisma.user.findUnique({ where: { id: parseInt(userId, 10) } });
             if (!user) {
                 return { profile: null, error: "User not found" };
             }

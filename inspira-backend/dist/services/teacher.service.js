@@ -8,57 +8,57 @@ exports.teacherService = {
     // Get all classes for a teacher
     getClasses: async (teacherId) => {
         return await prisma.class.findMany({
-            where: { teacherId },
+            where: { teacherId: Number(teacherId) },
         });
     },
     // Create a new class
     createClass: async (classData) => {
         return await prisma.class.create({
             data: {
-                teacherId: classData.teacherId,
+                teacherId: Number(classData.teacherId),
                 className: classData.className,
                 grade: classData.grade,
-                subject: classData.subject,
-                description: classData.description,
+                subject: classData.subject ?? null,
+                description: classData.description ?? null,
+                studentCount: 0,
             },
         });
     },
-    // Get students in a class
-    getClassStudents: async (classId) => {
-        return await prisma.student.findMany({
-            where: { classId },
-        });
+    // Get students in a class (placeholder)
+    getClassStudents: async (_classId) => {
+        return [];
     },
-    // Get analytics for all students in teacher's classes
-    getClassAnalytics: async (teacherId) => {
-        return await prisma.analytics.findMany({
-            where: { teacherId },
-        });
+    // Get analytics for all students in teacher's classes (placeholder)
+    getClassAnalytics: async (_teacherId) => {
+        return null;
     },
     // Create assignment or notice for students
     createAssignment: async (assignmentData) => {
         return await prisma.assignment.create({
             data: {
-                teacherId: assignmentData.teacherId,
+                teacherId: Number(assignmentData.teacherId),
                 title: assignmentData.title,
                 type: assignmentData.type,
                 subject: assignmentData.subject,
                 targetGrade: assignmentData.targetGrade,
                 content: assignmentData.content,
-                attachment: assignmentData.attachment,
+                attachment: assignmentData.attachment
+                    ? JSON.stringify(assignmentData.attachment)
+                    : null,
             },
         });
     },
     // Get all assignments created by teacher
     getTeacherAssignments: async (teacherId) => {
         return await prisma.assignment.findMany({
-            where: { teacherId },
+            where: { teacherId: Number(teacherId) },
+            orderBy: { createdAt: "desc" },
         });
     },
     // Delete an assignment
     deleteAssignment: async (assignmentId) => {
         return await prisma.assignment.delete({
-            where: { id: assignmentId },
+            where: { id: Number(assignmentId) },
         });
     },
 };
