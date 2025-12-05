@@ -1,28 +1,36 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
-import { User } from '../prisma/client'; // Adjust the import based on your Prisma client setup
-import { getUserById } from '../services/auth.service'; // Import a service function to get user by ID
+import { User } from '@prisma/client';
+import { getUserById } from '../services/auth.service';
 
-const authMiddleware = async (req: Request, res: Response, next: NextFunction) => {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'Unauthorized access' });
-  }
-
+export const authMiddleware = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as { userId: string };
-    const user: User | null = await getUserById(decoded.userId);
+    const rawUserId = req.headers['x-user-id'] as string;
 
-    if (!user) {
-      return res.status(401).json({ error: 'Unauthorized access' });
+    if (!rawUserId) {
+      return res.status(401).json({ message: 'Unauthorized: Missing user ID' });
     }
 
-    req.user = user; // Attach user to request object
+    // Convert string → number
+    const userId = parseInt(rawUserId, 10);
+    if (isNaN(userId)) {
+      return res.status(400).json({ message: 'Invalid user ID format' });
+    }
+
+    const user = await getUserById(userId);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    req.user = user; // Now valid with express.d.ts included
     next();
+
   } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
+    console.error('Auth Middleware Error:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
   }
 };
-
-export default authMiddleware;

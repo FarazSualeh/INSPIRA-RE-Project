@@ -11,7 +11,7 @@ exports.activityService = {
     getActivities: async (grade, subject) => {
         const activities = await prisma.activity.findMany({
             where: {
-                grade_level: grade,
+                gradeLevel: grade,
                 ...(subject && { subject }),
             },
         });
@@ -22,7 +22,17 @@ exports.activityService = {
      */
     createActivity: async (activityData) => {
         const newActivity = await prisma.activity.create({
-            data: activityData,
+            data: {
+                subject: activityData.subject,
+                title: activityData.title,
+                description: activityData.description,
+                gradeLevel: activityData.grade_level,
+                activityType: activityData.activity_type,
+                difficulty: activityData.difficulty,
+                pointsReward: activityData.points_reward,
+                estimatedTimeMinutes: activityData.estimated_time_minutes,
+                contentJson: activityData.content,
+            },
         });
         return newActivity;
     },
@@ -31,7 +41,7 @@ exports.activityService = {
      */
     updateActivity: async (activityId, updates) => {
         const updatedActivity = await prisma.activity.update({
-            where: { id: activityId },
+            where: { id: Number(activityId) },
             data: updates,
         });
         return updatedActivity;
@@ -41,7 +51,7 @@ exports.activityService = {
      */
     deleteActivity: async (activityId) => {
         await prisma.activity.delete({
-            where: { id: activityId },
+            where: { id: Number(activityId) },
         });
     },
 };

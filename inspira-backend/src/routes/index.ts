@@ -1,17 +1,16 @@
-import { Router } from 'express';
+import { Express } from 'express';
+import activitiesRoutes from './activities.routes';
+import assignmentsRoutes from './assignments.routes';
 import authRoutes from './auth.routes';
-import studentRoutes from './students.routes';
-import teacherRoutes from './teachers.routes';
-import activityRoutes from './activities.routes';
-import assignmentRoutes from './assignments.routes';
+import studentsRoutes from './students.routes';
+import teachersRoutes from './teachers.routes';
 
-const router = Router();
+const setupRoutes = (app: Express) => {
+  app.use('/activities', activitiesRoutes);
+  app.use('/assignments', assignmentsRoutes);
+  app.use('/auth', authRoutes);
+  app.use('/students', studentsRoutes);
+  app.use('/teachers', teachersRoutes);
+};
 
-// Set up routes
-router.use('/auth', authRoutes);
-router.use('/students', studentRoutes);
-router.use('/teachers', teacherRoutes);
-router.use('/activities', activityRoutes);
-router.use('/assignments', assignmentRoutes);
-
-export default router;
+export default setupRoutes;

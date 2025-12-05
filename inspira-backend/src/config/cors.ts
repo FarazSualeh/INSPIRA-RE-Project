@@ -1,21 +1,21 @@
-import { Request, Response, NextFunction } from 'express';
-import cors from 'cors';
+import cors, { CorsOptions } from "cors";
 
 const allowedOrigins = [
-  'http://localhost:3000', // Frontend URL
-  // Add other allowed origins here
+  "http://localhost:3000", // Frontend URL
+  // Add any additional allowed origins here
 ];
 
-const corsOptions = {
-  origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+export const corsOptions: CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
-      callback(new Error('Not allowed by CORS'));
+      callback(new Error("Not allowed by CORS"));
     }
   },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-  credentials: true, // Allow credentials (cookies, authorization headers, etc.)
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true, // allow cookies / authorization headers
 };
 
+// Optional: in case you want to use middleware directly
 export const corsMiddleware = cors(corsOptions);

@@ -1,5 +1,6 @@
 // src/validators/index.ts
 import { body, validationResult } from 'express-validator';
+import { Request, Response, NextFunction } from 'express';
 
 export const validateSignUp = [
   body('email').isEmail().withMessage('Please enter a valid email address.'),
@@ -36,9 +37,9 @@ export const validateCreateAssignment = [
   body('subject').notEmpty().withMessage('Subject is required.'),
   body('target_grade').notEmpty().withMessage('Target grade is required.'),
   body('content').notEmpty().withMessage('Content is required.'),
-]; 
+];
 
-export const validateRequest = (req, res, next) => {
+export const validateRequest = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });

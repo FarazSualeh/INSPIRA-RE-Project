@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import { setupRoutes } from './routes';
-import { errorHandler } from './middleware/error.middleware';
+import setupRoutes from './routes';
+import errorHandler from './middleware/error.middleware';
 import { corsOptions } from './config/cors';
 
 const app = express();
@@ -13,7 +13,11 @@ app.use(express.json());
 // Setup routes
 setupRoutes(app);
 
-// Error handling middleware
+app.get('/', (req, res) => {
+  res.send('API is running');
+});
+
+// Error handling middleware (last)
 app.use(errorHandler);
 
 export default app;

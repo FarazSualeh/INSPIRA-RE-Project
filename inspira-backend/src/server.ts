@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 
 import config from "./config";
-import router from "./routes";
+import setupRoutes from "./routes";  // function, not router
 import errorHandler from "./middleware/error.middleware";
 import prisma from "./prisma/client";
 
@@ -11,10 +11,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Mount all routes under /api (or just "/" if you prefer)
-app.use("/api", router);
+setupRoutes(app);              // call with app
 
-// Error handling middleware (after routes)
+app.get("/", (req, res) => {
+  res.send("API is running");
+});
+
 app.use(errorHandler);
 
 const PORT = config.port || 5000;
