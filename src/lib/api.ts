@@ -1,15 +1,15 @@
 /**
  * REST API Client Configuration
- * Works with your Node + Express + SQL backend
+ * Works with Python Django + MongoDB backend
  */
 
 const apiBaseUrl =
-  import.meta.env?.VITE_API_BASE_URL || "http://localhost:5000/api";
+  import.meta.env?.VITE_API_BASE_URL || "http://localhost:8000/api";
 const apiKey = import.meta.env?.VITE_API_KEY || "";
 
-export const isApiConfigured = !!(
-  apiBaseUrl && apiBaseUrl !== "http://localhost:5000/api"
-);
+// API is configured if we have a base URL (always true with Django backend)
+// Demo mode is disabled - always connect to real backend
+export const isApiConfigured = !!apiBaseUrl;
 
 // Backward compatibility alias
 export const isSupabaseConfigured = isApiConfigured;
